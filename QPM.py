@@ -83,13 +83,8 @@ class XiFactory(object):
             pickle.dump(data, outfile, protocol=pickle.HIGHEST_PROTOCOL)
 
     def query(self, mock):
+        """ fails of mock is not calculated """
         out = self.getfile(mock)
-        try:
-            with open(out, 'rb') as outfile:
-                data = pickle.load(outfile)
-            return data
-        except Exception:
-            self.replace(mock)
         with open(out, 'rb') as outfile:
             data = pickle.load(outfile)
         return data
