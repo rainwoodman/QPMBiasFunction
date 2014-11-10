@@ -26,7 +26,7 @@ class SubSampleStore(object):
         except IOError:
             return SubSampleFiles(self.template % args)
     def __reduce__(self):
-        return (SubSampleStore, (self.template))
+        return (SubSampleStore, (self.template,))
 
 class Mock(object):
     @staticmethod
