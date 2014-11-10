@@ -1,4 +1,5 @@
 import subprocess
+import numpy
 import xml.etree.ElementTree as ET
 import re
 import time
@@ -12,15 +13,22 @@ def submit(string):
     return match.group(1)
 
 def status(jobid):
-    xml = subprocess.check_output(['qstat', '-x', str(jobid)])
-    tree = ET.fromstring(xml)
-    ele = tree.find('Job/job_state')
-    return ele.text
+    """ returns R, Q, E, C, or U(for unknown, eg jobid is not in qstat"""
+    try:
+        xml = subprocess.check_output(['qstat', '-x', str(jobid)])
+        tree = ET.fromstring(xml)
+        ele = tree.find('Job/job_state')
+        return ele.text
+    except subprocess.CalledProcessError:
+        return 'U'
 
 def delete(jobid):
     return subprocess.check_call(['qdel', str(jobid)])
 
 def wait(jobid):
-    while 'C' != status(jobid):
-        time.sleep(10)
-    
+    if not isinstance(jobid, (list, tuple, set)):
+        while status(jobid) in 'RQ':
+            time.sleep(10)
+    else:
+        for job in jobid:
+            wait(job)
