@@ -5,13 +5,28 @@ import os.path
 import pickle
 from kdcount import correlate
 
-class SubsampleStore(object):
+class SubSampleStore(object):
     def __init__(self, template):
+        """ filename template
+        """
         self.template = template
-    def query(self, id):
-        return QPMSubsampleFile(self.template % id)
+        rem = os.path.dirname(template)
+        u = os.path.basename(template)
+        while not '%' in u:
+            basename = os.path.basename(rem)
+            nrem = os.path.dirname(rem)
+            if nrem == rem:
+                raise Exception("Filename shall have a %04d pattern somewhere!")
+            rem = nrem
+            u = '_'.join([basename, u])
+        self.uniquename = u
+    def query(self, *args):
+        try:
+            return SubSampleFile(self.template % args)
+        except IOError:
+            return SubSampleFiles(self.template % args)
     def __reduce__(self):
-        return (SubsampleStore, (self.template,))
+        return (SubSampleStore, (self.template))
 
 class Mock(object):
     @staticmethod
@@ -39,7 +54,7 @@ class Mock(object):
         self.hash = os.path.join(factory.__name__, '%.1E' % N, *['P%+0.3f' % p for p in
             parameters] + ['%04d' % sampleid])
     def __reduce__(self):
-        return (Mock, (self.sampleid, self.factory.__name__, self.parameters, self.N))
+        return (self.__class__, (self.sampleid, self.factory.__name__, self.parameters, self.N))
 
 class XiFactory(object):
     def __init__(self, samplestore, path):
@@ -98,7 +113,20 @@ class XiFactory(object):
         xi[2] = numpy.std(xis, axis=0) * len(xis) ** -0.5
         return xi
 
-class QPMSubsampleFile(object):
+class SubSampleFiles(list):
+    def __init__(self, filename):
+        i = 0
+        self.filename = filename
+        while True:
+            fn = filename + ('.%02d' % i)
+            print fn
+            if not os.path.exists(fn): break
+            i = i + 1
+            self.append(SubSampleFile(fn))
+        if len(self) == 0:
+            raise Exception("No files found at %s", filename)
+
+class SubSampleFile(object):
     def __init__(self, filename):
         self.ints = numpy.memmap(filename, mode='r', dtype='i4')
         self.eflag = self.ints[0]
